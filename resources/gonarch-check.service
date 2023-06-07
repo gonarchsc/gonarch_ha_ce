@@ -1,0 +1,17 @@
+[Unit]
+Description=Gonarch Check module
+# Documentation=""
+
+[Service]
+Type=simple
+User=gonarch
+Group=gonarch
+TimeoutStartSec=0
+Restart=always
+RestartSec=30s
+SyslogIdentifier=gonarch-check
+WorkingDirectory=/opt/gonarch
+ExecStart=/opt/gonarch/check
+
+[Install]
+WantedBy = multi-user.target

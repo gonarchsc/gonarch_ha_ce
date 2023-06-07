@@ -1,0 +1,17 @@
+[Unit]
+Description=Gonarch Core module
+# Documentation=""
+
+[Service]
+Type=simple
+User=gonarch
+Group=gonarch
+TimeoutStartSec=0
+Restart=always
+RestartSec=30s
+SyslogIdentifier=gonarch-core
+WorkingDirectory=/opt/gonarch
+ExecStart=/opt/gonarch/core
+
+[Install]
+WantedBy = multi-user.target

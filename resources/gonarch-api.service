@@ -1,0 +1,17 @@
+[Unit]
+Description=Gonarch API module
+# Documentation=""
+
+[Service]
+Type=simple
+User=gonarch
+Group=gonarch
+TimeoutStartSec=0
+Restart=always
+RestartSec=30s
+SyslogIdentifier=gonarch-api
+WorkingDirectory=/opt/gonarch
+ExecStart=/opt/gonarch/api
+
+[Install]
+WantedBy = multi-user.target

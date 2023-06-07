@@ -1,0 +1,28 @@
+---
+workspace:
+  name: WSNAME 
+  ip: WSIP
+  backend_dbname: /opt/gonarch/backend.db
+  env: test
+
+mysql_credentials:
+  user: gonarch
+  pass: letmein
+
+core:  
+  logging:
+    level: INFO
+    path: /var/log/gonarch/core.log
+
+api:
+  token: APITOKEN
+  port: 2423
+  logging:
+    level: INFO
+    path: /var/log/gonarch/api.log
+
+proxy:
+  port: 8283
+  logging:
+    level: INFO
+    path: /var/log/gonarch/proxy.log

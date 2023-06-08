@@ -1,0 +1,14 @@
+*.log
+*.db
+*.swp
+*dump.sql
+__pycahce__
+*.pyc
+*.cfg
+build
+dist
+*.spec
+bin/core
+bin/check
+bin/api
+bin/gui

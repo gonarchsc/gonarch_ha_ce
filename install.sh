@@ -17,14 +17,14 @@ fi
 
 error_handler(){
     echo -ne "${txtred}ERROR\n${txtori}"
-    echo -e "An error acurred during Gonarch installation. Please send the whole output of the install script to ${txtcyn}support@gonarch.tech${txtori} to get some help. Thanks"
+    echo -e "An error acurred during the installation. Please send the whole output of the install script to ${txtcyn}support@gonarch.tech${txtori} to get some help. Thanks"
     exit
 }
 
 # Create a short intro
-echo -e "Gonarch HA Community Edition"
+echo -e "Gonarch HA Community Edition - Installer"
 echo -e "Gonarch implements proxy, load balancer, replication manager and auto failover capabilities for MySQL 5.7 and 8.0"
-echo -e "NOTE: This is a development version and should not be used in Ppoduction"
+echo -e "NOTE: This is a development version and should not be used in production"
 version=$(cat version)
 echo -e "Version: ${version}"
 

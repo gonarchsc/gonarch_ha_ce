@@ -12,3 +12,6 @@ bin/core
 bin/check
 bin/api
 bin/gui
+*.tar.gz
+*.tar
+compile_tmp

@@ -14,6 +14,7 @@ with open(r'/etc/gonarch.conf') as file:
     config_file = yaml.load(file, Loader=yaml.FullLoader)
 
 dbname = config_file['workspace']['backend_dbname']
+haproxy_template = config_file['proxy']['template_path']
 gonarch_cred = "{0}:{1}".format(config_file['mysql_credentials']['user'], config_file['mysql_credentials']['pass'])
 # Define the backend model class for db operations
 backend_db = BackEndSqlModel(dbname)
@@ -69,7 +70,7 @@ def core_handler(node_info):
     
     proxy_updated_dict = core_obj.GetProxyData() 
     # Get updated status of proxy data for primary
-    core_obj.UpdateProxyCfg(proxy_initial_dict, proxy_updated_dict)    
+    core_obj.UpdateProxyCfg(proxy_initial_dict, proxy_updated_dict, haproxy_template)    
 
     return 0
     

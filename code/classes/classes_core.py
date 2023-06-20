@@ -36,11 +36,11 @@ class Core():
             proxy_l.append(proxy_dict)        
         return proxy_l
 ###############################################################################################################################
-    def UpdateProxyCfg(self, proxy_initial_dict, proxy_updated_dict): 
+    def UpdateProxyCfg(self, proxy_initial_dict, proxy_updated_dict, template): 
         if proxy_initial_dict == proxy_updated_dict:       
             return 0
 
-        with open('../proxy/haproxy_template.j2') as f:
+        with open(template) as f:
             tmpl = Template(f.read())
             cfg =  tmpl.render(
                 listener_data = proxy_updated_dict,                

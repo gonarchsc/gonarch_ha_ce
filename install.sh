@@ -37,8 +37,8 @@ read ip
 echo -e "Installing package dependencies"
 os_name=$(cat /etc/os-release | grep ^ID= | awk -F"=" '{print $2}' | tr -d '"')
 
-if [ "$os_name" == "ubuntu"]; then
-    package_l=('sqlite3' 'libmysqlclient-dev' 'haproxy')
+if [ "$os_name" == "ubuntu" ]; then
+    package_l=('sqlite' 'libmysqlclient-dev' 'haproxy')
     for i in "${package_l[@]}"; do
         echo -ne "- Install ${i}... "
         apt install --no-install-recommends -y -qqq ${i} >/dev/null 2>&1
@@ -49,8 +49,8 @@ if [ "$os_name" == "ubuntu"]; then
         fi
     done 
 
-elif [ "$os_name" == "centos"]; then
-    package_l=('sqlite3' 'haproxy')
+elif [ "$os_name" == "centos" ]; then
+    package_l=('epel-release' 'socat' 'sqlite-devel' 'haproxy' 'mariadb-libs-5.5.68-1.el7.x86_64')
     for i in "${package_l[@]}"; do
         echo -ne "- Install ${i}... "
         yum install -y -q ${i} >/dev/null 2>&1
@@ -60,17 +60,44 @@ elif [ "$os_name" == "centos"]; then
             error_handler
         fi
     done 
+    echo -e "Create a firewall rule for API connection... "
+    # Allow bind address for HAproxy at Selinux level
+    setsebool -P haproxy_connect_any=1
+    # Copy the xml for firewall rule
+    cp resources/firewalld-service.xml /usr/lib/firewalld/services/gonarch-api.xml
+    if [ "$?" -ne 0 ]; then
+        error_handler
+    fi
+    # Restart firewalld
+    systemctl reload firewalld
+    if [ "$?" -ne 0 ]; then
+        error_handler
+    fi
+    # Add the new created rule
+    firewall-cmd --zone=public --permanent --add-service=gonarch-api
+    if [ "$?" -eq 0 ]; then
+        echo -ne "${txtgrn}OK\n${txtori}"
+    else
+        error_handler
+    fi
+
 else
     echo -e "This OS is not supported (${os_name}). You can contact us to check if this OS is in the Gonarch's route map"
 fi
 
-# Create /var/log/gonarch & /opt/gonarch
+# Create /run/haproxy, /var/log/gonarch & /opt/gonarch
 echo -n "Create Gonarch folder in /opt... "
 mkdir -p /var/log/gonarch >/dev/null 2>&1
 if [ "$?" -gt 0 ]; then    
     error_handler
 fi
 mkdir -p /opt/gonarch >/dev/null 2>&1
+if [ "$?" -eq 0 ]; then
+    echo -ne "${txtgrn}OK\n${txtori}"
+else
+    error_handler
+fi
+mkdir -p /run/haproxy >/dev/null 2>&1
 if [ "$?" -eq 0 ]; then
     echo -ne "${txtgrn}OK\n${txtori}"
 else
@@ -110,16 +137,6 @@ else
     echo -ne "${txtgrn}SKIPPED\n${txtori}"
 fi
 
-# Create the admin user
-echo -n "Create the admin user for Gonarch web portal... "
-sqlite3 /opt/gonarch/backend.db "DELETE FROM auth WHERE name = 'admin'"  >/dev/null 2>&1
-sqlite3 /opt/gonarch/backend.db "INSERT INTO auth (name, email, pass) VALUES ('admin', 'admin@${wname}.com', 'temp_password')"  >/dev/null 2>&1
-if [ "$?" -eq 0 ]; then
-    echo -ne "${txtgrn}OK\n${txtori}"
-    else
-        error_handler
-    fi
-
 # Create gonarch user and assign all files to it
 echo -n "Create Gonarch user... "
 if [ $(id gonarch | wc -l) -eq 0 ]; then
@@ -155,21 +172,21 @@ fi
 
 # Move systemd files 
 echo -n "Create Gonarch Check service... "
-cp resoruces/gonarch-check.service /etc/systemd/system/
+cp resources/gonarch-check.service /etc/systemd/system/
 if [ "$?" -eq 0 ]; then
     echo -ne "${txtgrn}OK\n${txtori}"
 else
     error_handler
 fi
 echo -n "Create Gonarch Core service... "
-cp resoruces/gonarch-core.service /etc/systemd/system/
+cp resources/gonarch-core.service /etc/systemd/system/
 if [ "$?" -eq 0 ]; then
     echo -ne "${txtgrn}OK\n${txtori}"
 else
     error_handler
 fi
 echo -n "Create Gonarch API service... "
-cp resoruces/gonarch-api.service /etc/systemd/system/
+cp resources/gonarch-api.service /etc/systemd/system/
 if [ "$?" -eq 0 ]; then
     echo -ne "${txtgrn}OK\n${txtori}"
 else
@@ -182,7 +199,15 @@ else
     error_handler
 fi
 
-# Start Gonarch services
+# Start services
+echo -n "Start HAproxy... "
+systemctl restart haproxy
+if [ "$?" -eq 0 ]; then
+    echo -ne "${txtgrn}OK\n${txtori}"
+else
+    error_handler
+fi
+
 echo -n "Start Gonarch Check service... "
 systemctl restart gonarch-check
 if [ "$?" -eq 0 ]; then

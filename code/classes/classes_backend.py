@@ -58,7 +58,7 @@ class BackEndSqlModel():
             WHERE i.id IS NULL)"
         self.backend_engine.execute(query)
         query = "DELETE FROM instance_metric \
-            WHERE instance_id IN (SELECT ist.instance_id FROM instance_metric im \
+            WHERE instance_id IN (SELECT i.id FROM instance_metric im \
             LEFT JOIN instance i \
             ON i.id = im.instance_id \
             WHERE i.id IS NULL)"
@@ -122,7 +122,7 @@ class BackEndSqlModel():
         return self.backend_engine.execute(query).fetchall()      
 
     def InstanceGetInstanceListFromCluster(self, cluster):
-        query = "SELECT i.*, c.name 'c_name', c.created_at 'c_created', c.huser, c.hpass, c.promotion_rule, c.maint_mode, ist.*, ng.name 'ng_name' \
+        query = "SELECT i.*, c.name 'c_name', c.created_at 'c_created', c.huser, c.hpass, c.promotion_rule, c.maint_mode, ist.*, ng.name 'ng_name', im.thread_connected, im.thread_running \
             FROM instance i\
             INNER JOIN node_group ng \
                 ON i.node_group_id = ng.id \
@@ -130,27 +130,16 @@ class BackEndSqlModel():
                 ON c.name = ng.cluster_id \
             LEFT JOIN instance_status ist \
                 ON ist.instance_id = i.id \
+            LEFT JOIN instance_metric im \
+                ON im.id = i.id \
             WHERE ng.cluster_id = '{0}' \
             ORDER BY CASE role \
                 WHEN 'primary' THEN 1 \
                 WHEN 'replica' THEN 2 \
-                WHEN 'former-primary' THEN 3 \
             END, i.name ASC".format(cluster)
         return self.backend_engine.execute(query).fetchall()
         
-################################
-    '''
-    def InstanceUpdateSetting(self, data):
-        query = "UPDATE instance SET \
-            binlog_retention = {1}, \
-            arch = '{2}', \
-            version = '{3}', \
-            uuid = '{4}', \
-            name = '{5}' \
-            WHERE id = {0} \
-        ".format(data['instance_id'], data['binlog_retention'], data['arch'], data['version'], data['uuid'], data['name'])
-        return self.backend_engine.execute(query)
-    '''
+################################    
     def InstanceRemove(self, id):
         query = "DELETE FROM instance_status WHERE instance_id = {0}".format(id)
         self.backend_engine.execute(query)
@@ -165,42 +154,7 @@ class BackEndSqlModel():
         ".format(uuid)
         result = self.backend_engine.execute(query).first()
         return None if result is None else result[0] 
-    '''     
-    def InstanceGetReplicationCoordinates(self, cluster_name):
-        query = "SELECT i.hostname, i.port, c.huser, c.hpass, c.maint_mode, ist.lag_sec \
-            FROM instance_status ist \
-            INNER JOIN instance i \
-                ON i.id = ist.instance_id \
-            INNER JOIN node_group ng \
-                ON ng.id = i.node_group_id \
-            INNER JOIN cluster c \
-                ON c.name = ng.cluster_id \
-            WHERE i.role = 'primary' \
-            AND c.name = '{0}'".format(cluster_name)
-        return self.backend_engine.execute(query).first() 
     
-    def InstanceGetClusterFromInstance(self, hostname):
-        query = "SELECT cluster_id \
-            FROM node_group \
-            WHERE id = (SELECT node_group_id \
-                FROM instance \
-                WHERE hostname = '{0}')".format(hostname)
-        result = self.backend_engine.execute(query).first()
-        return None if result is None else result[0]     
-    
-    def InstanceGetReplInfoFromId(self, id):
-        query = "SELECT i.*, ist.*, c.huser, c.hpass, c.maint_mode \
-            FROM instance i\
-            INNER JOIN node_group ng \
-                ON i.node_group_id = ng.id \
-            INNER JOIN cluster c \
-                ON c.name = ng.cluster_id \
-            LEFT JOIN instance_status ist \
-                ON ist.instance_id = i.id \
-            WHERE i.id = {0} \
-            ".format(id)
-        return self.backend_engine.execute(query).first()
-     '''   
     def InstanceGetPrimaryFromCluster(self, cluster):
         query = "SELECT i.*, c.huser, c.hpass, c.maint_mode \
             FROM instance i\
@@ -233,66 +187,7 @@ class BackEndSqlModel():
             ON i.id = ist.instance_id \
             WHERE i.node_group_id = {0}".format(ng_id)
         return self.backend_engine.execute(query).fetchall() 
-    '''
-    def InstanceCheckReplicationStatus(self, hostname):
-        query = "SELECT reachable, io_thread_running, sql_thread_running, lag_sec, binlog_file, binlog_pos \
-            FROM instance_status \
-            WHERE instance_id = ( \
-                SELECT id  \
-                FROM instance \
-                WHERE hostname = '{0}')".format(hostname)        
-        return self.backend_engine.execute(query).first()
     
-    def InstanceCheckExisting(self, node_group_id):
-        result = self.backend_engine.execute("SELECT hostname \
-            FROM instance \
-            WHERE role = 'replica' \
-            AND node_group_id = '{0}'".format(node_group_id)).fetchall() 
-        return [item[0] for item in result]
-    
-    
-    
-    def InstanceGetPrimarytByNodeGroupId(self, ng_id):
-        query = "SELECT * \
-            FROM instance i \
-            LEFT JOIN instance_status ist \
-            ON i.id = ist.instance_id \
-            WHERE i.node_group_id = {0} \
-            AND i.role = 'primary' \
-            ORDER BY i.name".format(ng_id)
-        return self.backend_engine.execute(query).fetchall() 
-    
-    def InstanceGetReplicaListtByNodeGroupId(self, ng_id):
-        query = "SELECT * \
-            FROM instance i \
-            LEFT JOIN instance_status ist \
-            ON i.id = ist.instance_id \
-            WHERE i.node_group_id = {0} \
-            AND i.role = 'replica' \
-            ORDER BY i.name".format(ng_id)
-        return self.backend_engine.execute(query).fetchall() 
-    
-    def InstanceGetFormerPrimary(self, cluster_name):
-        query = "SELECT i.name, i.hostname, i.port \
-            FROM instance i \
-            INNER JOIN node_group ng \
-                ON ng.id= i.node_group_id \
-            LEFT JOIN instance_status ist \
-                ON i.id = ist.instance_id \
-            WHERE ng.cluster_id = {0} \
-            AND i.role = 'former-primary'".format(cluster_name)
-        return self.backend_engine.execute(query).first()
-    
-    def InstanceGetFormerPrimary(self, ng_id):
-        query = "SELECT * \
-            FROM instance i \
-            LEFT JOIN instance_status ist \
-            ON i.id = ist.instance_id \
-            WHERE i.node_group_id = {0} \
-            AND i.role = 'former-primary' \
-            ORDER BY i.name".format(ng_id)
-        return self.backend_engine.execute(query).fetchall()
-    '''
         
 ######### NODE GROUP #########    
     def NodeGroupAddNew(self, data):
@@ -307,13 +202,7 @@ class BackEndSqlModel():
         query = "SELECT node_group_id FROM instance WHERE id = {0}".format(instance_id)
         result = self.backend_engine.execute(query).first()
         return None if result is None else result[0]
-    '''
-    def NodeGroupFullInfo(self, cluster_name):
-        query = "SELECT * \
-            FROM node_group \
-            WHERE cluster_id = '{0}'".format(cluster_name)
-        return self.backend_engine.execute(query).fetchall() 
-    '''
+  
     def InstanceGetInstanceListFromClusterForGui(self, cluster):
         query = "SELECT i.*, c.name 'c_name', c.created_at 'c_created', c.huser, c.hpass, c.promotion_rule, c.maint_mode, ist.*, ng.name 'ng_name', \
             CASE i.access_level \
@@ -475,98 +364,6 @@ class BackEndSqlModel():
                 ".format(instance_id)           
         return self.backend_engine.execute(query)
 
-    '''
-    def InstanceStatusUpdateFailoverCoordinates(self, data):        
-        query = "UPDATE instance_status \
-            SET failover_binlog_file = '{1}', \
-            failover_binlog_pos = {2} \
-            WHERE instance_id = (SELECT id FROM instance WHERE hostname = '{0}') \
-            ".format(
-                data['instance_id'],
-                data['failover_binlog_file'],
-                data['failover_binlog_pos']
-            )        
-        return self.backend_engine.execute(query)      
-    '''
-    
-    '''
-    def InstanceStatusAddReachable(self, instance_id):
-        query = "INSERT INTO instance_status (instance_id, reachable) \
-                VALUES ('{0}', 1) \
-                ON CONFLICT (instance_id) \
-                DO UPDATE SET reachable = 1".format(instance_id)           
-        return self.backend_engine.execute(query)
-    def InstanceStatusUpdateReplCoordinates(self, data):
-        query = "UPDATE instance_status \
-            SET binlog_file = '{0}', \
-            binlog_pos = {1} \
-            WHERE instance_id = {2}".format(
-            data['binlog_file'],
-            data['binlog_pos'],
-            data['instance_id'])
-        return self.backend_engine.execute(query)
-    
-    def InstanceStatusUpdatePromotable(self, instance_id, flag):
-        query = "UPDATE instance_status \
-            SET promotable = {0} \
-            WHERE instance_id = {1}".format(flag, instance_id)
-        return self.backend_engine.execute(query) 
-    
-    def InstanceStatusUpdateProxyStatus(self, instance_id, flag):
-        query = "UPDATE instance_status \
-            SET proxy_status = '{0}' \
-            WHERE instance_id = {1}".format(flag, instance_id)
-        return self.backend_engine.execute(query) 
-    
-    def InstanceGetIdFromHostname(self, name):
-        query = "SELECT id \
-            FROM instance \
-            WHERE hostname = '{0}' \
-        ".format(name)
-        result = self.backend_engine.execute(query).first()
-        return None if result is None else result[0] 
-    
-    def InstanceGetFormerPrimaryId(self):
-        query = "SELECT id \
-            FROM instance \
-            WHERE role = 'former-primary'"
-        result = self.backend_engine.execute(query).first()
-        return None if result is None else result[0] 
-    '''
-    
-    '''
-    def InstanceStatusGetReachable(self, id):
-        query = "SELECT reachable \
-            FROM instance_status \
-            WHERE instance_id = {0}".format(id)        
-        result = self.backend_engine.execute(query).first()
-        return None if result is None else result[0]     
-    
-    def InstanceStatusGetAllSynced(self, cluster_name):
-        query = "SELECT count(*) \
-            FROM instance_status ist \
-            INNER JOIN instance i \
-            ON i.id = ist.instance_id \
-            INNER JOIN node_group ng \
-            ON ng.id = i.node_group_id \
-            WHERE i.role not in ('primary', 'former-primary') \
-            AND (ist.io_thread_running = 'No' and ist.sql_thread_running = 'No') \
-            AND cluster_id = '{0}'".format(cluster_name)
-        result = self.backend_engine.execute(query).first()
-        return None if result is None else result[0] 
-    
-    def InstanceStatusGetPromotableInfo(self):
-        query = "SELECT i.id, i.arch, c.promotion_rule, COALESCE(ist.io_thread_running, 'na') io_thread, COALESCE(ist.sql_thread_running, 'na')  sql_thread, COALESCE(ist.lag_sec, 999) repl_lag \
-            FROM cluster c, \
-            INNER JOIN node_group ng \
-                ON ng.cluster_id = c.name \
-            INNER JOIN instance i \
-                ON i.node_group_id = ng.id \
-            LEFT JOIN instance_status ist \
-                ON ist.instance_id = i.id \
-            WHERE i.role = 'replica'", 
-        return self.backend_engine.execute(query)
-    '''
 ######### INSTANCE METRICS #########
     def InstanceMetricAddNew(self, node_id):
         query = "INSERT INTO instance_metric \

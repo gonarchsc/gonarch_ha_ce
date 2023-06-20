@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-service_l=("gonarch-api" "gonarch-gui" "gonarch-core" "gonarch-check")
+service_l=("gonarch-api" "gonarch-core" "gonarch-check")
 
 echo "Gonarch service check"
 echo "Timestamp: " $(date +"%Y-%m-%d %H:%M:%S")

@@ -18,7 +18,7 @@ error_handler(){
 v_current_major=$(cat version | awk -F'.' '{print$1}')
 v_current_minor=$(cat version | awk -F'.' '{print$2}')
 v_current_patch=$(cat version | awk -F'.' '{print$3}')
-new_v_patch=$((current_v++))
+new_v_patch=$((v_current_patch+1))
 new_version="${v_current_major}.${v_current_minor}.${new_v_patch}"
 echo ${new_version} > version
 echo -e "Gonarch HA Community Edition - Compiler"
@@ -32,13 +32,7 @@ module_l=(core check api)
 
 for m in "${module_l[@]}"; do
     echo -ne "- Compile ${m}... "
-    pyinstaller --onefile \
-    --specpath compile_tmp/ \
-    --workpath compile_tmp/ \
-    --distpath bin/ \
-    --paths code/classes \
-    --name ${m} \
-    code/${m}.py >/dev/null 2>&1
+    pyinstaller --onefile --specpath compile_tmp/ --workpath compile_tmp/ --distpath bin/ --paths code/classes --name ${m} code/${m}.py >/dev/null 2>&1
     if [ "$?" -eq 0 ]; then
         echo -ne "${txtgrn}OK\n${txtori}"
     else
@@ -47,12 +41,16 @@ for m in "${module_l[@]}"; do
 done
 
 echo -ne "- Create tar file... "
-tar -czvf compile_tmp/gonarch_ha_ce.${version}.tar.gz bin/ install.sh resources/ >/dev/null 2>&1
+mkdir gonarch_ha_ce.${version}
+cp -r bin install.sh version resources gonarch_ha_ce.${version}
+tar -czvf compile_tmp/gonarch_ha_ce.${version}.tar.gz gonarch_ha_ce.${version} >/dev/null 2>&1
+rm -rf gonarch_ha_ce.${version}
 if [ "$?" -eq 0 ]; then
-        echo -ne "${txtgrn}OK\n${txtori}"
-    else
-        error_handler
-    fi
+    echo -ne "${txtgrn}OK\n${txtori}"
+else
+    error_handler
+fi
+exit
 
 echo -ne "- Creating GitHub release ..."
 gh release create ${version} compile_tmp/gonarch_ha_ce.${version}.tar.gz

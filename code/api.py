@@ -20,7 +20,7 @@ with open(r'/etc/gonarch.conf') as file:
 
 dbname = config_file['workspace']['backend_dbname']
 env = config_file['workspace']['env']
-myha_cred = "{0}:{1}".format(config_file['mysql_credentials']['user'], config_file['mysql_credentials']['pass'])
+gonarch_cred = "{0}:{1}".format(config_file['mysql_credentials']['user'], config_file['mysql_credentials']['pass'])
 
 logging.basicConfig(
     level=logging.INFO,
@@ -94,7 +94,7 @@ def cluster_detail():
             repl_dict['sql_thread_running'] = instance['sql_thread_running']  
 
         repl_dict['binlog_coordinates'] = "{0}:{1}".format(instance['binlog_file'], instance['binlog_pos'])      
-        if instance['replication_mode'] == 'gtid':
+        if instance['replication_mode'] == 'gtid' and instance['role'] == 'replica':
             gtid_l = []                
             for gtid_coord in ParseGtidServer(backend_db, instance):  
                 gtid_dict = {                  
@@ -118,6 +118,10 @@ def cluster_detail():
             "access_level": instance['access_level'],
             "role": instance['role'],
             "reachable": instance['reachable'],
+            "threads": {
+                "connected": instance['thread_connected'],
+                "runnig" : instance['thread_running']
+            },
             "replication": repl_dict
         }
 
@@ -125,8 +129,11 @@ def cluster_detail():
     result_dict = {
         "cluster_name": result[0]['c_name'],
         "creation_date": result[0]['c_created'],
+        "promotion_rule": result[0]['promotion_rule'],
+        "in_maintenance": result[0]['maint_mode'],
         "instances": instance_l
     }
+    
     return jsonify(result_dict)
 
 # Add new cluster
@@ -141,7 +148,7 @@ def cluster_add():
     
     # Test connectivity to instance
     try:                    
-        node_obj = Node(input_dict['name'], dbname, logger, input_dict['repl_credentials'])        
+        node_obj = Node(input_dict['name'], dbname, logger, gonarch_cred)        
         conn = node_obj.Connect(input_dict['primary'])
         mysql_vars = node_obj.FetchTargetVars(conn)
     except exc.OperationalError as e: 
@@ -149,8 +156,8 @@ def cluster_add():
         return jsonify(input_dict)    
 
     # Check if target instance is primary
-    try:             
-        if node_obj.FetchTargetSlaveStatus() is not None:
+    try:                    
+        if bool(node_obj.FetchTargetSlaveStatus(conn)) == True:
             input_dict = {'output_no': 4, 'message': "{0} is not the primary node".format(input_dict['primary'])} 
             return jsonify(input_dict)
     except exc.OperationalError as e: 

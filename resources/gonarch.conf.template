@@ -23,6 +23,7 @@ api:
 
 proxy:
   port: 8283
+  template_path: /opt/gonarch/haproxy_template.j2
   logging:
     level: INFO
     path: /var/log/gonarch/proxy.log

@@ -129,7 +129,7 @@ def reachable_check_old(gonarch_cred, backend_db, cluster_name):
         p1.start()
     if 'p1' in locals():
         p1.join()
-        p1.close()
+        p1.terminate()
 
 def reachable_check_single(gonarch_cred, backend_db, cluster_name):
     instance_l = backend_db.InstanceGetInstanceListFromCluster(cluster_name)    
@@ -158,6 +158,6 @@ while True:
             p0 = Process(target=reachable_check_single, args = (gonarch_cred, backend_db, c['name']))            
             p0.start()        
             p0.join()
-            p0.close()            
+            p0.terminate()            
         
     

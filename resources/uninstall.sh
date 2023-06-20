@@ -25,10 +25,9 @@ error_handler(){
 }
 
 # Create a short intro
-echo -e "GONARCH UNINSTALLER"
+echo -e "Gonarch HA Community Edition - Uninstaller"
 echo -e "NOTE: This is a development version and should not be used in Production"
 echo -e "NOTE: OS and Python dependencies will not be removed in case they are in use by another process."
-
 
 # Stop Gonarch services
 echo -n "Stop Gonarch Check service... "
@@ -75,18 +74,18 @@ else
     error_handler
 fi
 
-# Remove gonarch user 
-echo -n "Remove Gonarch user... "
-deluser gonarch
+# Cleanup HAProxy
+echo -n "Reload HAProxy... "
+systemctl reload haproxy
 if [ "$?" -eq 0 ]; then
     echo -ne "${txtgrn}OK\n${txtori}"
 else
     error_handler
 fi
 
-# Cleanup HAProxy
-echo -n "Reload HAProxy... "
-systemctl reload haproxy
+# Remove gonarch user 
+echo -n "Remove Gonarch user... "
+userdel gonarch
 if [ "$?" -eq 0 ]; then
     echo -ne "${txtgrn}OK\n${txtori}"
 else

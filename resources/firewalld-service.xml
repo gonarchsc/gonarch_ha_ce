@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<service>
+  <short>Gonarch API</short>
+  <description>Gonarch HA enables high availabiliy in MySQL clusters. This API allows to interact with the tool.</description>
+  <port protocol="tcp" port="2423"/>
+</service>

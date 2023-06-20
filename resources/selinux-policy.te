@@ -1,8 +1,0 @@
-module mypolicy 1.0;
-
-require {
-    type usr_t;
-    class file;
-}
-
-allow usr_t file:file { read write };

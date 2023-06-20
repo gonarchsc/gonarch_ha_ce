@@ -1,4 +1,4 @@
-# Gonarch HA community version (Alpha)
+# Gonarch HA community edition (Alpha)
 
 Deploy a robust MySQL high availability solution utilizing Gonarch HA, a versatile open-source tool that integrates proxy, load balancing, automatic failover, and replication management functionalities into a cohesive package.
 

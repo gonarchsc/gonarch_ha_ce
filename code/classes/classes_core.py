@@ -48,7 +48,7 @@ class Core():
         with open("/etc/haproxy/haproxy.cfg", "w") as output_file:
             output_file.write(cfg)
         try:
-            subprocess.call('sudo systemctl reload haproxy', shell=True)     
+            subprocess.call('systemctl reload haproxy', shell=True)     
         except Exception as e:             
             self.logger_obj.error("Proxy layer update failed", extra = {"detail": "", "cluster": self.node_info['cluster_name'], "node": ""})             
         self.logger_obj.info("Proxy layer updated and reloaded", extra = {"detail": "", "cluster": self.node_info['cluster_name'], "node": ""}) 

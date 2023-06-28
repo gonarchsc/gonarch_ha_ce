@@ -4,8 +4,8 @@ Description=Gonarch Core module
 
 [Service]
 Type=simple
-User=gonarch
-Group=gonarch
+User=root
+Group=root
 TimeoutStartSec=0
 Restart=always
 RestartSec=30s

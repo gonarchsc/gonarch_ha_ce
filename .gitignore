@@ -2,7 +2,7 @@
 *.db
 *.swp
 *dump.sql
-__pycahce__
+*__pycahce__*
 *.pyc
 *.cfg
 build

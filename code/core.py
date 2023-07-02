@@ -86,23 +86,3 @@ while True:
             core_handler(node_info)
             #print("===========================================================")
             
-
-        
-
-
-'''
-while True:       
-    #start = time.time()    
-    cluster_l = backend_db.ClusterList()  
-
-    #proxy_initial_dict = GetProxyData(backend_db)  
-
-    for c in cluster_l:          
-        cluster_name = c['name']  
-        if c['maint_mode'] == 0:
-            p = Process(target=node_handler, args = (gonarch_cred, backend_db, cluster_name))            
-            p.start()
-        
-            p.join()
-            p.close()  
-'''             

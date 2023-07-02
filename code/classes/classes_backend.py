@@ -109,7 +109,7 @@ class BackEndSqlModel():
         return None if result is None else result[0]  
 
     def InstanceGetNodeListFromRole(self, cluster_name, role):
-        query = "SELECT i.id, i.name, i.hostname, i.port, i.arch, c.huser, c.hpass, ist.replication_mode, ist.binlog_file, ist.binlog_pos \
+        query = "SELECT i.id, i.name, i.hostname, i.port, i.arch, c.huser, c.hpass, ist.replication_mode, ist.binlog_file, ist.binlog_pos, c.maint_mode \
             FROM instance i \
             LEFT JOIN instance_status ist \
                 ON ist.instance_id = i.id \
@@ -122,7 +122,9 @@ class BackEndSqlModel():
         return self.backend_engine.execute(query).fetchall()      
 
     def InstanceGetInstanceListFromCluster(self, cluster):
-        query = "SELECT i.*, c.name 'c_name', c.created_at 'c_created', c.huser, c.hpass, c.promotion_rule, c.maint_mode, ist.*, ng.name 'ng_name', im.thread_connected, im.thread_running \
+        query = "SELECT i.*, c.name 'c_name', c.created_at 'c_created', c.huser, c.hpass, c.promotion_rule, c.maint_mode, ist.*, ng.name 'ng_name', im.thread_connected, im.thread_running, \
+        (SELECT pl.name || ':' || pl.port FROM  proxy_listener pl  WHERE pl.ng_id = ng.id AND name like '%writer') 'writer_endpoint', \
+        (SELECT pl.name || ':' || pl.port FROM  proxy_listener pl  WHERE pl.ng_id = ng.id AND name like '%reader') 'reader_endpoint' \
             FROM instance i\
             INNER JOIN node_group ng \
                 ON i.node_group_id = ng.id \

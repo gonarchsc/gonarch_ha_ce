@@ -131,6 +131,8 @@ def cluster_detail():
         "creation_date": result[0]['c_created'],
         "promotion_rule": result[0]['promotion_rule'],
         "in_maintenance": result[0]['maint_mode'],
+        "writer_endpoint": result[0]['writer_endpoint'],
+        "reader_endpoint": result[0]['reader_endpoint'],
         "instances": instance_l
     }
     

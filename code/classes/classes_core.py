@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 from jinja2 import Template
-import time, json, subprocess, sys
+import time, json, subprocess, sys, os.path
 
 # Load classes depending if PyInstaller is using them 
 if getattr(sys, 'frozen', False):   
@@ -48,7 +48,10 @@ class Core():
         with open("/etc/haproxy/haproxy.cfg", "w") as output_file:
             output_file.write(cfg)
         try:
-            subprocess.call('systemctl reload haproxy', shell=True)     
+            if os.path.exists('/.dockerenv'):
+                subprocess.call('/etc/init.d/haproxy reload', shell=True)  
+            else:
+                subprocess.call('systemctl reload haproxy', shell=True)     
         except Exception as e:             
             self.logger_obj.error("Proxy layer update failed", extra = {"detail": "", "cluster": self.node_info['cluster_name'], "node": ""})             
         self.logger_obj.info("Proxy layer updated and reloaded", extra = {"detail": "", "cluster": self.node_info['cluster_name'], "node": ""}) 
@@ -155,12 +158,14 @@ class Core():
         except Exception as e:
              self.logger_obj.debug("Connection lost", extra = {"detail": "ManageReadOnly", "cluster": self.node_info['cluster_name'], "node": self.node_info['node_name']})
 ###############################################################################################################################
-    def UpdateBrokenReplicaRole(self):
+    def UpdateBrokenReplicaRole(self):    
+         
         # Get current primary information
         primary_node = self.backend_db_obj.InstanceGetNodeListFromRole(self.cluster_name, 'primary')   
-        primary_node = primary_node[0]  
+        primary_node = primary_node[0]                  
         # Check if this replica is replicating fine, in sync, with a wrong primary.
-        if self.node_info['repl_status_dict']['master_ip'] != primary_node['hostname'] \
+        if primary_node['maint_mode'] == 0 \
+        and self.node_info['repl_status_dict']['master_ip'] != primary_node['hostname'] \
         and self.node_info['repl_status_dict']['io_thread_running'] == 'Yes' \
         and self.node_info['repl_status_dict']['sql_thread_running'] == 'Yes' \
         and self.node_info['replication_mode'] == 'binlog' \
@@ -174,11 +179,12 @@ class Core():
                 'node_id': self.node_info['node_id']
             }
             self.backend_db_obj.InstanceUpdateRole(update_role_dict)
-        elif self.node_info['repl_status_dict']['master_ip'] != primary_node['hostname'] \
+        elif primary_node['maint_mode'] == 0 \
+        and self.node_info['repl_status_dict']['master_ip'] != primary_node['hostname'] \
         and self.node_info['repl_status_dict']['io_thread_running'] == 'Yes' \
         and self.node_info['repl_status_dict']['sql_thread_running'] == 'Yes' \
         and self.node_info['replication_mode'] == 'gtid' \
-        and self.node_info['repl_status_dict']['lag_sec'] == 0:
+        and self.node_info['repl_status_dict']['lag_sec'] == 0:            
             # Update the synced replica as unknown. The RejoinNode process will fix it
             update_role_dict = {
                 'role': 'unknown',
@@ -188,7 +194,7 @@ class Core():
             self.backend_db_obj.InstanceUpdateRole(update_role_dict)
 ###############################################################################################################################
     def ForcedFailover(self, gonarch_cred): 
-        # A few facts awhen this gets triggered:
+        # A few facts when this gets triggered:
         # - The coming primary starts as a replica so read_only = OFF
         # - As soon as reachable = 0 for primary, it gets disabled from Proxy so no traffic can go there
         # - This function sets maint_mode = 1 so no updates will happen in check.py. writer will remain disabled until this failover is finished.
@@ -225,21 +231,7 @@ class Core():
                 self.logger_obj.warning("The selected node for promotion went down", extra = {"detail": "The node selected to become the new primary went down during the promotion process. The failover process will retry again with another node, if there is any other node available.", "cluster": self.node_info['cluster_name'], "node": ""})
                 self.logger_obj.debug("Connection got closed", extra = {"detail": "ForcedFailover", "cluster": self.node_info['cluster_name'], "node": cp['name']})
                 return 
-            # Build up the dictionary for replication setup
-            repl_setup_dict = {
-                'hostname': cp['hostname'],
-                'port': cp['port'],
-                'repl_user': cp['huser'],
-                'repl_pass': cp['hpass']
-            }
-            if cp['replication_mode'] == 'binlog':
-                repl_setup_dict.update({
-                    'binlog_file': cp_master_info['File'],
-                    'binlog_pos': cp_master_info['Position']
-                })
-            else:
-                repl_setup_dict.update({'gtid_auto_pos': 0})          
-           
+
             # Update the failed primary as former-primary in backend DB 
             failed_primary = self.backend_db_obj.InstanceGetNodeListFromRole(self.node_info['cluster_name'], 'primary')
             update_role_dict = {
@@ -269,24 +261,7 @@ class Core():
 
                 self.backend_db_obj.PromLedgerAddNew(failover_dict)           
             
-            self.logger_obj.info("Node selected to become new primary", extra = {"detail": "According to this cluster's promotion rules, this node meets the requirements to become primary.", "cluster": self.node_info['cluster_name'], "node": cp['name']})               
-
-            # Loop in all reachable replicas to apply the new master info
-            for repl_node in self.backend_db_obj.InstanceGetReplicaListFromCluster(self.cluster_name):
-                # Connect to replica
-                repl_node_obj = Node(self.node_info['cluster_name'], self.backend_db_name, self.logger_obj, gonarch_cred)
-                conn_string = "{0}:{1}".format(repl_node['hostname'], repl_node['port']) 
-                
-                conn = repl_node_obj.Connect(conn_string)
-                # Stop replication in replicas
-                repl_node_obj.StopReplication(conn, repl_node['arch'])
-                # Setup replication
-                repl_node_obj.SetupReplication(conn, repl_node['arch'], repl_node['replication_mode'], repl_setup_dict)
-                # Start replication
-                repl_node_obj.StartReplication(conn, repl_node['arch'])
-                # Close the connection
-                repl_node_obj.CloseConnection(conn)
-                self.logger_obj.info("Replica reconfigured to sync with new primary", extra = {"detail": "Replication will start soon and this node will be serving read traffic again.", "cluster": self.node_info['cluster_name'], "node": repl_node['name']})                
+            self.logger_obj.info("Node selected to become new primary", extra = {"detail": "According to this cluster's promotion rules, this node meets the requirements to become primary.", "cluster": self.node_info['cluster_name'], "node": cp['name']})      
 
             self.backend_db_obj.ClusterUpdateMaintMode(0, self.cluster_name)
             self.logger_obj.info("Maintenance mode disabled", extra = {"detail": "The failover activity is completed and now Gonarch is actively monitoring this cluster again.", "cluster": self.node_info['cluster_name'], "node": ""})
@@ -306,9 +281,39 @@ class Core():
             self.logger_obj.error("Primary node is not active in this moment. Rejoining job aborted", extra = {"detail": "Gonarch will retry again once there is a primary defined.", "cluster": self.node_info['cluster_name'], "node": self.node_info['node_name']})
             return        
         primary_node = primary_node[0] 
-         
+        
+        # If coords returns empty means that we have a normal replica that has a change in the primary. This happens during failover operations in order to reconfigure existing replicas to repoint them to the elected primary
+        if len(self.backend_db_obj.PromLedgerFetchOrderedEvent(self.node_info['node_id'])) == 0:            
+            # Build up the dictionary for replication setup
+            repl_setup_dict = {
+                'hostname': primary_node['hostname'],
+                'port': primary_node['port'],
+                'repl_user': primary_node['huser'],
+                'repl_pass': primary_node['hpass']
+            }
+            if primary_node['replication_mode'] == 'binlog':
+                repl_setup_dict.update({
+                    'binlog_file': primary_node['File'],
+                    'binlog_pos': primary_node['Position']
+                })
+            else:
+                repl_setup_dict.update({'gtid_auto_pos': 0})   
+            # Connect to replica
+            repl_node_obj = Node(self.node_info['cluster_name'], self.backend_db_name, self.logger_obj, gonarch_cred)
+            conn_string = "{0}:{1}".format(self.backend_db_obj.InstanceGetIp(self.node_info['node_id']), self.node_info['port'])                      
+            conn = repl_node_obj.Connect(conn_string)
+            # Stop replication in replicas
+            repl_node_obj.StopReplication(conn, self.node_info['arch'])
+            # Setup replication
+            repl_node_obj.SetupReplication(conn, self.node_info['arch'], self.node_info['replication_mode'], repl_setup_dict)
+            # Start replication
+            repl_node_obj.StartReplication(conn, self.node_info['arch'])
+            # Close the connection
+            repl_node_obj.CloseConnection(conn)
+            self.logger_obj.info("Replica reconfigured to sync with new primary", extra = {"detail": "Replication will start soon and this node will be serving read traffic again.", "cluster": self.node_info['cluster_name'], "node": self.node_info['node_name']})   
+
         # Fetch the coordinates from failover json
-        for coord in self.backend_db_obj.PromLedgerFetchOrderedEvent(self.node_info['node_id']):
+        for coord in self.backend_db_obj.PromLedgerFetchOrderedEvent(self.node_info['node_id']):            
             # First of all  check if the target primary is alive
             if coord['reachable'] == 0:
                 self.logger_obj.warning("The candidate node needs to fetch data from a dead node before to rejoin. This operation will remain on hold until that node is reachable again", extra = {"detail": "{0} has data missing in this node and must be fetched before to rejoin the cluster".format(coord['name']), "cluster": self.node_info['cluster_name'], "node": self.node_info['node_name']}) 

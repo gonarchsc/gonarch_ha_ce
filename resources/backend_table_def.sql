@@ -4,7 +4,8 @@ create table IF NOT EXISTS cluster (
     huser text, 
 	hpass text,
 	maint_mode int default 0,
-    promotion_rule text check(promotion_rule IN ('synced', 'available')) default ('synced')
+    promotion_rule text check(promotion_rule IN ('synced', 'available')) default ('synced'),
+    proxy_max_allowed_lag int default (0)
 );
 
 create table IF NOT EXISTS node_group (

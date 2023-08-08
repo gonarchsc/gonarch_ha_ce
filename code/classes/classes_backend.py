@@ -24,12 +24,16 @@ class BackEndSqlModel():
     
     def ClusterList(self):
         return self.backend_engine.execute("SELECT * FROM cluster ORDER BY name").fetchall()            
-    '''
-    def ClusterSingle(self, cluster_name):
+    
+    def ClusterInfo(self, cluster_name):
         return self.backend_engine.execute("SELECT * FROM cluster where name = '{0}'".format(cluster_name)).first()        
-    '''        
+          
     def ClusterUpdateMaintMode(self, flag, cluster_name):
         query = "UPDATE cluster SET maint_mode = {0} WHERE name = '{1}'".format(flag, cluster_name)
+        return self.backend_engine.execute(query)
+
+    def ClusterUpdateMaxAllowedLag(self, flag, cluster_name):
+        query = "UPDATE cluster SET proxy_max_allowed_lag = {0} WHERE name = '{1}'".format(flag, cluster_name)
         return self.backend_engine.execute(query)
     
     def ClusterUpdatePromotionRule(self, flag, cluster_name):
@@ -122,7 +126,7 @@ class BackEndSqlModel():
         return self.backend_engine.execute(query).fetchall()      
 
     def InstanceGetInstanceListFromCluster(self, cluster):
-        query = "SELECT i.*, c.name 'c_name', c.created_at 'c_created', c.huser, c.hpass, c.promotion_rule, c.maint_mode, ist.*, ng.name 'ng_name', im.thread_connected, im.thread_running, \
+        query = "SELECT i.*, c.name 'c_name', c.created_at 'c_created', c.huser, c.hpass, c.promotion_rule, c.maint_mode, c.proxy_max_allowed_lag, ist.*, ng.name 'ng_name', im.thread_connected, im.thread_running, \
         (SELECT pl.name || ':' || pl.port FROM  proxy_listener pl  WHERE pl.ng_id = ng.id AND name like '%writer') 'writer_endpoint', \
         (SELECT pl.name || ':' || pl.port FROM  proxy_listener pl  WHERE pl.ng_id = ng.id AND name like '%reader') 'reader_endpoint' \
             FROM instance i\
@@ -179,6 +183,20 @@ class BackEndSqlModel():
                 ON ist.instance_id = i.id \
             WHERE ng.cluster_id = '{0}' \
             AND i.role = 'replica' \
+            AND ist.reachable = 1".format(cluster)
+        return self.backend_engine.execute(query).fetchall()
+
+    def InstanceGetBackupListFromCluster(self, cluster):
+        query = "SELECT i.*, c.name 'c_name', c.huser, c.hpass, c.maint_mode, ist.replication_mode, ist.reachable \
+            FROM instance i\
+            INNER JOIN node_group ng \
+                ON i.node_group_id = ng.id \
+            INNER JOIN cluster c \
+                ON c.name = ng.cluster_id \
+            INNER JOIN instance_status ist \
+                ON ist.instance_id = i.id \
+            WHERE ng.cluster_id = '{0}' \
+            AND i.role = 'backup' \
             AND ist.reachable = 1".format(cluster)
         return self.backend_engine.execute(query).fetchall()
     

@@ -9,31 +9,17 @@ if getattr(sys, 'frozen', False):
 elif __file__:
     from classes.classes_backend import BackEndSqlModel
 
-
-class ConnectionManager():
-    def __init__(self, c):
-        self.conn = c
-
-    def __enter__(self):
-        return self.conn
-            
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        try:
-            print("Connection closed successfully.")
-            self.conn.close()
-        except:
-            print(f"An error occurred: {exc_val}")                 
-
-
 class Node():
-    def __init__(self, cname, dbname, logger, full_cred):        
+    def __init__(self, cname, dbname, logger, gonarch_cfg):        
         self.backend_db_obj = BackEndSqlModel(dbname)
         self.cluster_name = cname 
         self.logger_obj = logger       
-        self.conn_credential = full_cred                                   
+        self.gonarch_cfg_dict = gonarch_cfg                                     
 
-    def Connect(self, conn_string):               
-        url = 'mysql://{0}@{1}/information_schema'.format(self.conn_credential, conn_string)            
+    def Connect(self, conn_string):  
+        conn_credential = "{0}:{1}".format(self.gonarch_cfg_dict['mysql_credentials']['user'], self.gonarch_cfg_dict['mysql_credentials']['pass'])   
+                  
+        url = 'mysql://{0}@{1}/information_schema'.format(conn_credential, conn_string)            
         #for i in range(3):
         engine = db.create_engine(url, connect_args={'connect_timeout': 5}, pool_size=5, max_overflow=2, pool_timeout=10, pool_recycle=5)
         return engine.connect()
@@ -111,13 +97,13 @@ class Node():
         result = conn.execute(query).first()
         return None if result is None else result[0]
 
-    def SetProxyStatus(self, node_info):
+    def SetProxyStatus(self, node_info, max_allowed_lag):
         if node_info['role'] == 'primary':
             return 'up'
         elif node_info['role'] == 'replica' \
         and node_info['repl_status_dict']['io_thread_running'] == 'Yes' \
         and node_info['repl_status_dict']['sql_thread_running'] == 'Yes' \
-        and node_info['repl_status_dict']['lag_sec'] == 0:
+        and node_info['repl_status_dict']['lag_sec'] <= max_allowed_lag:
             return 'up' 
         else:
             return 'down'
@@ -127,7 +113,7 @@ class Node():
         if len(primary_node) == 0:
             return
         primary_node = primary_node[0]        
-        if node_info['role'] in ('primary', 'unknown'):
+        if node_info['role'] in ('primary', 'unknown', 'backup'):
             return 0        
         elif node_info['role'] == 'replica' \
         and node_info['arch'] == 'on-prem' \

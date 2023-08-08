@@ -11,12 +11,13 @@ elif __file__:
     from classes.classes_node import Node
 
 class Core():
-    def __init__(self, dbname, logger, ninfo):         
+    def __init__(self, dbname, logger, ninfo, cfg_file):         
         self.backend_db_obj = BackEndSqlModel(dbname)
         self.backend_db_name = dbname
         self.cluster_name = ninfo['cluster_name']
         self.logger_obj = logger
         self.node_info = ninfo
+        self.gonarch_cfg_dict = cfg_file
 ###############################################################################################################################    
     def GetProxyData(self):  
         proxy_l = []     
@@ -43,7 +44,7 @@ class Core():
         with open(template) as f:
             tmpl = Template(f.read())
             cfg =  tmpl.render(
-                listener_data = proxy_updated_dict,                
+                listener_data = proxy_updated_dict       
             )
         with open("/etc/haproxy/haproxy.cfg", "w") as output_file:
             output_file.write(cfg)
@@ -56,12 +57,12 @@ class Core():
             self.logger_obj.error("Proxy layer update failed", extra = {"detail": "", "cluster": self.node_info['cluster_name'], "node": ""})             
         self.logger_obj.info("Proxy layer updated and reloaded", extra = {"detail": "", "cluster": self.node_info['cluster_name'], "node": ""}) 
 ###############################################################################################################################    
-    def DiscoverNewReplica(self, gonarch_cred):
+    def DiscoverNewReplica(self):
         # Loop each item of the replica_ip list
         for r in self.node_info['repl_ip_list']:
             # Check if that IP already exists in the backend
             if self.backend_db_obj.InstanceCheckExistingIp(r['replica_ip']) == 0:
-                repl_node_obj = Node(self.node_info['cluster_name'], self.backend_db_name, self.logger_obj, gonarch_cred)
+                repl_node_obj = Node(self.node_info['cluster_name'], self.backend_db_name, self.logger_obj, self.gonarch_cfg_dict)
                 conn_string = "{0}:{1}".format(r['replica_ip'], 3306)
                 # If the connection is alive perform teh connection and fetch data
                 try:
@@ -96,17 +97,18 @@ class Core():
         }          
         return self.backend_db_obj.InstanceUpdateNode(node_dict)
 ###############################################################################################################################
-    def UpdateNodeStatus(self, gonarch_cred):  
+    def UpdateNodeStatus(self):  
         # The Role does nto get updated here. It happens across teh whole process
-        node_obj = Node(self.node_info['cluster_name'], self.backend_db_name, self.logger_obj, gonarch_cred)   
-        
+        node_obj = Node(self.node_info['cluster_name'], self.backend_db_name, self.logger_obj, self.gonarch_cfg_dict)   
+
+        cluster_info = self.backend_db_obj.ClusterInfo(self.node_info['cluster_name'])
         if self.node_info['reachable'] == 1:           
             node_status_dict = {
                 'node_id': self.node_info['node_id'],
                 'reachable': self.node_info['reachable'],
                 'promotable': node_obj.SetPromotable(self.node_info),
                 'replication_mode': self.node_info['replication_mode'],
-                'proxy_status': node_obj.SetProxyStatus(self.node_info)
+                'proxy_status': node_obj.SetProxyStatus(self.node_info, cluster_info['proxy_max_allowed_lag'])
             }
 
             if self.node_info['role'] in ('primary', 'unknown'):                
@@ -143,8 +145,8 @@ class Core():
         else:
             return 0  
 ###############################################################################################################################
-    def ManageReadOnly(self, gonarch_cred):        
-        node_obj = Node(self.node_info['cluster_name'], self.backend_db_name, self.logger_obj, gonarch_cred) 
+    def ManageReadOnly(self):        
+        node_obj = Node(self.node_info['cluster_name'], self.backend_db_name, self.logger_obj, self.gonarch_cfg_dict) 
         conn_string = "{0}:{1}".format(self.backend_db_obj.InstanceGetIp(self.node_info['node_id']), self.node_info['port'])         
         try:     
             conn = node_obj.Connect(conn_string)
@@ -193,7 +195,7 @@ class Core():
             }
             self.backend_db_obj.InstanceUpdateRole(update_role_dict)
 ###############################################################################################################################
-    def ForcedFailover(self, gonarch_cred): 
+    def ForcedFailover(self): 
         # A few facts when this gets triggered:
         # - The coming primary starts as a replica so read_only = OFF
         # - As soon as reachable = 0 for primary, it gets disabled from Proxy so no traffic can go there
@@ -212,13 +214,14 @@ class Core():
         # Promotable status is being updated in step #3 in Core.py  
         cp = self.backend_db_obj.InstanceStatusGetPromotableReplica(self.cluster_name)              
         if cp:            
-            cp_node_obj = Node(self.node_info['cluster_name'], self.backend_db_name, self.logger_obj, gonarch_cred)
+            cp_node_obj = Node(self.node_info['cluster_name'], self.backend_db_name, self.logger_obj, self.gonarch_cfg_dict)
             conn_string = "{0}:{1}".format(cp['hostname'], cp['port'])             
             try:
                 conn = cp_node_obj.Connect(conn_string)
-                # Wait until there is coming transactions into this server before to stop replication
-                while cp_node_obj.CheckOpenTrx(conn) > 0:
-                    time.sleep(1)                       
+                # Wait until there is no coming transactions into this server before to stop replication
+                # This should be an option to activate this. During failover we need to move fast.
+                #while cp_node_obj.CheckOpenTrx(conn) > 0:
+                #    time.sleep(1)                       
                 # Stop replication in coming primary
                 cp_node_obj.StopReplication(conn, cp['arch'])
                 # Reset replication in coming primary
@@ -272,7 +275,7 @@ class Core():
             self.backend_db_obj.ClusterUpdateMaintMode(0, self.cluster_name)
             self.logger_obj.info("Maintenance mode disabled", extra = {"detail": "Failover activity failed and now Gonarch is actively monitoring this cluster again.", "cluster": self.node_info['cluster_name'], "node": ""})     
 ###############################################################################################################################
-    def RejoinNode(self, gonarch_cred):
+    def RejoinNode(self):
         self.logger_obj.info("A node in unknown status is online", extra = {"detail": "Starting the rejoining process.", "cluster": self.node_info['cluster_name'], "node": self.node_info['node_name']})
         # Get the current primary ID
         primary_node = self.backend_db_obj.InstanceGetNodeListFromRole(self.cluster_name, 'primary') 
@@ -299,7 +302,7 @@ class Core():
             else:
                 repl_setup_dict.update({'gtid_auto_pos': 0})   
             # Connect to replica
-            repl_node_obj = Node(self.node_info['cluster_name'], self.backend_db_name, self.logger_obj, gonarch_cred)
+            repl_node_obj = Node(self.node_info['cluster_name'], self.backend_db_name, self.logger_obj, self.gonarch_cfg_dict)
             conn_string = "{0}:{1}".format(self.backend_db_obj.InstanceGetIp(self.node_info['node_id']), self.node_info['port'])                      
             conn = repl_node_obj.Connect(conn_string)
             # Stop replication in replicas
@@ -355,7 +358,7 @@ class Core():
                     repl_setup_dict.update({'gtid_auto_pos': 0})
         
             # Connect to replica
-            rejoin_node_obj = Node(self.node_info['cluster_name'], self.backend_db_name, self.logger_obj, gonarch_cred)
+            rejoin_node_obj = Node(self.node_info['cluster_name'], self.backend_db_name, self.logger_obj, self.gonarch_cfg_dict)
             conn_string = "{0}:{1}".format(self.backend_db_obj.InstanceGetIp(self.node_info['node_id']), self.node_info['port']) 
             try:            
                 conn = rejoin_node_obj.Connect(conn_string)

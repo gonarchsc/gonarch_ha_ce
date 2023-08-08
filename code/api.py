@@ -5,6 +5,7 @@ from flask_cors import CORS
 from waitress import serve
 from sqlalchemy import exc
 import sys, logging, yaml, json
+from collections import OrderedDict
 
 # Load classes depending if PyInstaller is using them 
 if getattr(sys, 'frozen', False):
@@ -120,7 +121,7 @@ def cluster_detail():
             "reachable": instance['reachable'],
             "threads": {
                 "connected": instance['thread_connected'],
-                "runnig" : instance['thread_running']
+                "running" : instance['thread_running']
             },
             "replication": repl_dict
         }
@@ -131,11 +132,11 @@ def cluster_detail():
         "creation_date": result[0]['c_created'],
         "promotion_rule": result[0]['promotion_rule'],
         "in_maintenance": result[0]['maint_mode'],
+        "max_replication_lag": result[0]['proxy_max_allowed_lag'],
         "writer_endpoint": result[0]['writer_endpoint'],
         "reader_endpoint": result[0]['reader_endpoint'],
         "instances": instance_l
-    }
-    
+    }    
     return jsonify(result_dict)
 
 # Add new cluster
@@ -150,7 +151,7 @@ def cluster_add():
     
     # Test connectivity to instance
     try:                    
-        node_obj = Node(input_dict['name'], dbname, logger, gonarch_cred)        
+        node_obj = Node(input_dict['name'], dbname, logger, config_file)        
         conn = node_obj.Connect(input_dict['primary'])
         mysql_vars = node_obj.FetchTargetVars(conn)
     except exc.OperationalError as e: 
@@ -248,6 +249,20 @@ def cluster_edit_promrule():
     else:
         input_dict = {'message': "The indicated cluster does not exists ({0})".format(input_dict['name'])}
     return input_dict
+
+# Edit proxy max allowed lag in cluster
+@app.route('{0}/cluster/edit/maxlag'.format(api_version), methods=['PUT'])
+def cluster_edit_maxlag(): 
+    input_dict = json.loads(request.data)      
+    # Check if the cluster already exists based on name.
+    cluster_result = backend_db.ClusterCheckExisting(input_dict['name'])
+    # Teh cluster exists
+    if cluster_result == 1:
+        backend_db.ClusterUpdateMaxAllowedLag(input_dict['flag'], input_dict['name'])
+        input_dict = {'message': "Max allowed lag in replicas set to {0} in cluster {1}".format(input_dict['flag'], input_dict['name'])}
+    else:
+        input_dict = {'message': "The indicated cluster does not exists ({0})".format(input_dict['name'])}
+    return input_dict
 # ============================
 # AUTH 
 # Add new user
@@ -319,7 +334,7 @@ def node_edit_access_level():
     return input_dict
 
 # Remove existing node
-@app.route('{0}/cluster/replica/remove'.format(api_version), methods=['DELETE'])
+@app.route('{0}/node/remove'.format(api_version), methods=['DELETE'])
 def replica_remove(): 
     input_dict = json.loads(request.data)  
     # Check if the cluster already exists based on name.
@@ -330,14 +345,52 @@ def replica_remove():
         # Check if the replica exists in the cluster
         replica_result = backend_db.InstanceGetReplicaListFromCluster(input_dict['name'])
         for replica in replica_result:        
-            if input_dict['id'] == replica['id']:
-                backend_db.InstanceRemove(input_dict['id'])
-                input_dict = {'output_no': 0, 'message': "Replica node removed ({0}). If this replica is still connected to master it will be added automatically again".format(input_dict['id'])}
+            if input_dict['node_id'] == replica['id']:
+                backend_db.InstanceRemove(input_dict['node_id'])
+                input_dict = {'output_no': 0, 'message': "Replica node removed ({0}). If this replica is still connected to master it will be added automatically again".format(input_dict['node_id'])}
             else:
-                input_dict = {'output_no': 2, 'message': "The indicated replica node does not exists or it's not a replica ({0})".format(input_dict['id'])}
+                input_dict = {'output_no': 2, 'message': "The indicated replica node does not exists or it's not a replica ({0})".format(input_dict['node_id'])}
     else:
         input_dict = {'output_no': 1, 'message': "The indicated cluster does not exists ({0})".format(input_dict['name'])}
     return input_dict
+
+# Change replica role to backup
+@app.route('{0}/node/edit/role/backup'.format(api_version), methods=['PUT'])
+def replica_edit_backup():     
+    input_dict = json.loads(request.data)  
+    # Check if the cluster already exists based on name.
+    cluster_result = backend_db.ClusterCheckExisting(input_dict['name'])
+
+    # The cluster exists
+    if cluster_result == 1:     
+            # Check if the backup node exists in the cluster
+            replica_result = backend_db.InstanceGetBackupListFromCluster(input_dict['name'])
+            for replica in replica_result:        
+                if input_dict['node_id'] == replica['id']:
+                    input_dict.update({
+                        'access_level': 'r',
+                        'role': 'replica'
+                    })
+                    backend_db.InstanceUpdateRole(input_dict)
+                    output_dict = {'output_no': 0, 'message': "Replica role set to replica. From now on this replica can be promoted and will serve traffic as usual."}
+                    return output_dict
+ 
+            # Check if the replica exists in the cluster
+            replica_result = backend_db.InstanceGetReplicaListFromCluster(input_dict['name'])
+            for replica in replica_result:        
+                if input_dict['node_id'] == replica['id']:
+                    input_dict.update({
+                        'access_level': 'na',
+                        'role': 'backup'
+                    })
+                    backend_db.InstanceUpdateRole(input_dict)
+                    output_dict = {'output_no': 0, 'message': "Replica role set to backup. From now on this replica cannot be promoted and won't serve any traffic"}
+                    return output_dict
+                
+            output_dict = {'output_no': 2, 'message': "The indicated replica node does not exists or it's not a replica ({0})".format(input_dict['node_id'])}
+    else:
+        output_dict = {'output_no': 1, 'message': "The indicated cluster does not exists ({0})".format(input_dict['name'])}
+    return output_dict
 
 if __name__ == '__main__':    
     #ssl_context=context

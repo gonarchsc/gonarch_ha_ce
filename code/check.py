@@ -41,7 +41,7 @@ def is_reachable(gonarch_cred, i):
     # try to perform initial conection to node. Add it as non reachable if connection fails.
     try:                   
         # Define the object and perform the connection to MySQL target instance.
-        node = Node(i['c_name'], dbname, logger, gonarch_cred)
+        node = Node(i['c_name'], dbname, logger, config_file)
         conn_string = "{0}:{1}".format(i['hostname'], i['port'])         
         conn = node.Connect(conn_string)
         # Fetch MySQL global variables           

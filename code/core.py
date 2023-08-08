@@ -15,7 +15,7 @@ with open(r'/etc/gonarch.conf') as file:
 
 dbname = config_file['workspace']['backend_dbname']
 haproxy_template = config_file['proxy']['template_path']
-gonarch_cred = "{0}:{1}".format(config_file['mysql_credentials']['user'], config_file['mysql_credentials']['pass'])
+
 # Define the backend model class for db operations
 backend_db = BackEndSqlModel(dbname)
 ####### Logging section ####### 
@@ -31,7 +31,7 @@ logger = logging.getLogger()
 def core_handler(node_info):     
 
     node_info['role'] = backend_db.InstanceGetRole(node_info['node_id'])
-    core_obj = Core(dbname, logger, node_info)   
+    core_obj = Core(dbname, logger, node_info, config_file)   
     #print("{node_id}::{node_name}::{elapsed_time} -> {reachable}|{role}".format(**node_info))   
 
     ## Get HAproxy status info
@@ -40,12 +40,12 @@ def core_handler(node_info):
     ## If the current node is the primary try to add new replicas
     if len(node_info['repl_ip_list']) > 0:
         # Add all new replicas in the list
-        core_obj.DiscoverNewReplica(gonarch_cred)   
+        core_obj.DiscoverNewReplica()   
 
     ## Update instance, instance status & instance metrics in backend
     if node_info['reachable'] == 1:
         core_obj.UpdateNode()        
-    core_obj.UpdateNodeStatus(gonarch_cred)
+    core_obj.UpdateNodeStatus()
     core_obj.UpdateNodeMetric()
     
     ## Check if all nodes in cluster are down. IF so skip any further action
@@ -54,11 +54,11 @@ def core_handler(node_info):
 
     ## Set read only based on node's role 
     if node_info['reachable'] == 1:           
-        core_obj.ManageReadOnly(gonarch_cred)
+        core_obj.ManageReadOnly()
 
     ## If primary dies perform a failover
     if node_info['reachable'] == 0:
-        core_obj.ForcedFailover(gonarch_cred)
+        core_obj.ForcedFailover()
     
     ## Check if any replica is replicating from a non-primary node 
     if node_info['role'] == 'replica' and node_info['reachable'] == 1:
@@ -66,7 +66,7 @@ def core_handler(node_info):
     
     ## Any missconfigured node will be fixed:
     if node_info['reachable'] == 1 and node_info['role'] == 'unknown':
-        core_obj.RejoinNode(gonarch_cred)
+        core_obj.RejoinNode()
     
     proxy_updated_dict = core_obj.GetProxyData() 
     # Get updated status of proxy data for primary

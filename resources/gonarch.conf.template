@@ -27,3 +27,9 @@ proxy:
   logging:
     level: INFO
     path: /var/log/gonarch/proxy.log
+
+medkit:
+  refresh: 10
+  logging:
+    level: INFO
+    path: /var/log/gonarch/medkit.log

@@ -29,7 +29,7 @@ class Node():
 
 ###################################### Check module functions ################################################################# 
     def FetchTargetVars(self, conn):        
-        query = "SELECT @@hostname, @@port, @@version, @@server_uuid, @@expire_logs_days, @@basedir, @@gtid_mode, @@read_only"               
+        query = "SELECT @@hostname, @@port, @@version, @@server_uuid, @@expire_logs_days, @@basedir, @@gtid_mode, @@read_only, @@log_bin_basename"               
         return conn.execute(query).first()
     
     def FetchTargetStatus(self, conn):        
@@ -180,3 +180,13 @@ class Node():
             query = "CHANGE MASTER TO MASTER_HOST='{hostname}', MASTER_PORT={port}, MASTER_USER='{repl_user}', MASTER_PASSWORD='{repl_pass}', MASTER_AUTO_POSITION = {gtid_auto_pos}".format(**data)
         return conn.execute(query) 
 
+    def MedkitErr1231(self, conn):
+        query = "STOP SLAVE IO_THREAD"
+        conn.execute(query)
+        query = "START SLAVE IO_THREAD"
+        conn.execute(query)
+        replica_status = conn.execute("show slave status").first()
+        if replica_status['Slave_IO_Running'] == 'Yes':
+            return 0
+        else:
+            return 1

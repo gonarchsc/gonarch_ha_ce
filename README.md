@@ -8,9 +8,6 @@ Website: https://www.gonarch.tech/#gha
 
 Creator LinkedIn profile: https://www.linkedin.com/in/ralvarezaragon/
 
-Gonarch LinkedIn page: https://www.linkedin.com/company/gonarch/
-
-
 ## How to use this repo?
 
 Clone the repo and run install.sh. You will notice that code has being packed into binaries and those are used by the installer. If you want to recomplie, run compile.sh from the bin folder (ensure you have pyinstaller in your machine)

@@ -38,7 +38,8 @@ echo -e "Installing package dependencies"
 os_name=$(cat /etc/os-release | grep ^ID= | awk -F"=" '{print $2}' | tr -d '"')
 
 if [ "$os_name" == "ubuntu" ]; then
-    package_l=('sqlite' 'libmysqlclient-dev' 'haproxy')
+    apt update
+    package_l=('sqlite3' 'libmysqlclient-dev' 'haproxy')
     for i in "${package_l[@]}"; do
         echo -ne "- Install ${i}... "
         apt install --no-install-recommends -y -qqq ${i} >/dev/null 2>&1

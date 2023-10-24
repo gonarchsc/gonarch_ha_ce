@@ -173,7 +173,7 @@ class BackEndSqlModel():
         return self.backend_engine.execute(query).first()
     
     def InstanceGetReplicaListFromCluster(self, cluster):
-        query = "SELECT i.*, c.name 'c_name', c.huser, c.hpass, c.maint_mode, ist.replication_mode, ist.io_thread_errorno, ist.sql_thread_errorno, ist.reachable \
+        query = "SELECT i.*, c.name 'c_name', c.huser, c.hpass, c.maint_mode, ist.replication_mode, ist.io_thread_errorno, ist.sql_thread_errorno, ist.io_thread_error, ist.sql_thread_error, ist.reachable, ist.binlog_file, ist.binlog_pos \
             FROM instance i\
             INNER JOIN node_group ng \
                 ON i.node_group_id = ng.id \

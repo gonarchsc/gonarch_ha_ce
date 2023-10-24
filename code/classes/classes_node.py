@@ -144,7 +144,7 @@ class Node():
             return 0      
 
     def SetReadOnly(self, conn, flag):
-        query = "SET GLOBAL read_only = {0}; SET GLOBAL super_read_only = {0}".format(flag)               
+        query = "SET GLOBAL read_only = {0}".format(flag)               
         return conn.execute(query)  
    
     def StopReplication(self, conn, arch): 
@@ -190,3 +190,7 @@ class Node():
             return 0
         else:
             return 1
+
+    def ExecuteInsert(self, conn, query):        
+        return conn.execute(query)
+        

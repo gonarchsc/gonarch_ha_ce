@@ -4,7 +4,7 @@ Deploy a robust MySQL high availability solution utilizing Gonarch HA, a versati
 
 Documentation: https://github.com/raa82/gonarch_ha_ce/wiki
 
-Creator LinkedIn profile: https://www.linkedin.com/in/ralvarezaragon/
+Creator LinkedIn profile: https://www.linkedin.com/in/ralvarezaragon/ 
 
 ## How to use this repo?
 

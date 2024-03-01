@@ -102,8 +102,8 @@ def is_reachable(gonarch_cred, i):
         logger.debug("Connection got closed", extra = {"detail": "", "cluster": i['c_name'], "node": i['name']})    
     try:      
         node_info_str = json.dumps(node_info_dict) 
-        #print(node_info_str)
-        #print("======================================")
+        print(node_info_str)
+        print("======================================")
         s.settimeout(10)       
         s.connect(('127.0.0.1', 8283))
         s.send(node_info_str.encode())        

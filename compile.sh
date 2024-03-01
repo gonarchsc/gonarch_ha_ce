@@ -32,7 +32,7 @@ module_l=(core check api)
 
 for m in "${module_l[@]}"; do
     echo -ne "- Compile ${m}... "
-    pyinstaller --onefile --specpath compile_tmp/ --workpath compile_tmp/ --distpath bin/ --paths code/classes --name ${m} code/${m}.py >/dev/null 2>&1
+    pyinstaller --onefile --specpath compile_tmp/ --workpath compile_tmp/ --distpath bin/ --paths code/classes --paths /home/ralvarez/.local/lib/python3.8/site-packages --name ${m} code/${m}.py >/dev/null 2>&1
     if [ "$?" -eq 0 ]; then
         echo -ne "${txtgrn}OK\n${txtori}"
     else

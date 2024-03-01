@@ -84,5 +84,5 @@ while True:
             node_info = json.loads(data.decode())
             #print(node_info) 
             core_handler(node_info)
-            #print("===========================================================")
+            print("===========================================================")
             

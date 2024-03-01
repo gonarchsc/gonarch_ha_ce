@@ -59,13 +59,13 @@ class Core():
 ###############################################################################################################################    
     def DiscoverNewReplica(self):
         # Loop each item of the replica_ip list
-        for r in self.node_info['repl_ip_list']:
+        for r in self.node_info['repl_ip_list']:            
             # Check if that IP already exists in the backend
-            if self.backend_db_obj.InstanceCheckExistingIp(r['replica_ip']) == 0:
+            if self.backend_db_obj.InstanceCheckExistingIp(r['replica_ip']) == 0:                
                 repl_node_obj = Node(self.node_info['cluster_name'], self.backend_db_name, self.logger_obj, self.gonarch_cfg_dict)
                 conn_string = "{0}:{1}".format(r['replica_ip'], 3306)
-                # If the connection is alive perform teh connection and fetch data
-                try:
+                # If the connection is alive perform the connection and fetch data
+                try:                    
                     conn = repl_node_obj.Connect(conn_string)             
                     repl_node_info = repl_node_obj.FetchTargetVars(conn)                                
                     new_replica_dict = {
@@ -80,13 +80,15 @@ class Core():
                         'role': 'replica',
                         'access_level': 'r' 
                     }
+                    print(new_replica_dict)
                     repl_result = self.backend_db_obj.InstanceAddNew(new_replica_dict)
                     self.backend_db_obj.InstanceStatusAddNew(repl_result.lastrowid)
                     self.backend_db_obj.InstanceMetricAddNew(repl_result.lastrowid)
                     self.logger_obj.info("New replica found and added to the backend", extra = {"detail": "", "cluster": self.node_info['cluster_name'], "node": repl_node_info['@@hostname']}) 
                     repl_node_obj.CloseConnection(conn)
-                except Exception as e:
-                    self.logger_obj.debug("Connection lost", extra = {"detail": "DiscoverNewReplica", "cluster": self.node_info['cluster_name'], "node": self.node_info['node_name']})                    
+                except Exception as e:                   
+                    self.logger_obj.debug("Connection lost", extra = {"detail": "DiscoverNewReplica", "cluster": self.node_info['cluster_name'], "node": self.node_info['node_name']})   
+                                
 ###############################################################################################################################
     def UpdateNode(self):           
         node_dict = {

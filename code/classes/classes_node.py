@@ -29,7 +29,7 @@ class Node():
 
 ###################################### Check module functions ################################################################# 
     def FetchTargetVars(self, conn):        
-        query = "SELECT @@hostname, @@port, @@version, @@server_uuid, @@expire_logs_days, @@basedir, @@gtid_mode, @@read_only"               
+        query = "SELECT @@hostname, @@port, @@version, @@server_uuid, @@expire_logs_days, @@basedir, @@gtid_mode, @@read_only, @@log_bin_basename"               
         return conn.execute(query).first()
     
     def FetchTargetStatus(self, conn):        
@@ -144,7 +144,7 @@ class Node():
             return 0      
 
     def SetReadOnly(self, conn, flag):
-        query = "SET GLOBAL read_only = {0}; SET GLOBAL super_read_only = {0}".format(flag)               
+        query = "SET GLOBAL read_only = {0}".format(flag)               
         return conn.execute(query)  
    
     def StopReplication(self, conn, arch): 

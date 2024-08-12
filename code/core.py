@@ -1,5 +1,10 @@
 #!/usr/bin/python3
-import logging, yaml, json, socket, sys
+import logging, yaml, json, socket, sys, getpass
+
+# core.py only runs as ROOT
+if getpass.getuser() != 'root':
+    print("This module can be executed ONLY as root")
+    exit()
 
 # Load classes depending if PyInstaller is using them 
 if getattr(sys, 'frozen', False):   
@@ -84,5 +89,5 @@ while True:
             node_info = json.loads(data.decode())
             #print(node_info) 
             core_handler(node_info)
-            print("===========================================================")
+            #print("===========================================================")
             

@@ -122,20 +122,10 @@ def is_reachable(gonarch_cred, i):
         subprocess.run('echo "{3} server {1}_reader/{2}" | {0}'.format(api_socket, i['c_name'], i['name'], action), stdout = subprocess.PIPE, stderr = subprocess.DEVNULL, shell=True) 
     
 ########################################
-def reachable_check_old(gonarch_cred, backend_db, cluster_name):
-    instance_l = backend_db.InstanceGetInstanceListFromCluster(cluster_name)    
-    for i in instance_l:                      
-        p1 = Process(target=is_reachable, args = (gonarch_cred, i))            
-        p1.start()
-    if 'p1' in locals():
-        p1.join()
-        p1.terminate()
-
 def reachable_check_single(gonarch_cred, backend_db, cluster_name):
     instance_l = backend_db.InstanceGetInstanceListFromCluster(cluster_name)    
     for i in instance_l:                      
         is_reachable(gonarch_cred, i)
-
 
 def reachable_check_multithread(gonarch_cred, backend_db, cluster_name):
     instance_list = backend_db.InstanceGetInstanceListFromCluster(cluster_name)

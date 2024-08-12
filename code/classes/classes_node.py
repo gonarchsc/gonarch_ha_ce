@@ -175,8 +175,8 @@ class Node():
         elif arch == 'rds' and replication_mode == 'gtid':
             query = "CALL mysql.rds_set_external_master_with_auto_position ('{hostname}', {port}, '{repl_user}', '{repl_pass}', 0, 0)".format(**data)
         elif arch == 'on-prem' and replication_mode == 'binlog':
-            query = "CHANGE MASTER TO MASTER_HOST='{hostname}', MASTER_PORT={port}, MASTER_USER='{repl_user}', MASTER_PASSWORD='{repl_pass}', MASTER_LOG_FILE='{binlog_file}', MASTER_LOG_POS={binlog_pos}".format(**data)
+            query = "CHANGE MASTER TO MASTER_HOST='{hostname}', MASTER_PORT={port}, MASTER_USER='{repl_user}', MASTER_PASSWORD='{repl_pass}', MASTER_LOG_FILE='{binlog_file}', MASTER_LOG_POS={binlog_pos}, MASTER_SSL = 1".format(**data)
         elif arch == 'on-prem' and replication_mode == 'gtid':
-            query = "CHANGE MASTER TO MASTER_HOST='{hostname}', MASTER_PORT={port}, MASTER_USER='{repl_user}', MASTER_PASSWORD='{repl_pass}', MASTER_AUTO_POSITION = {gtid_auto_pos}".format(**data)
+            query = "CHANGE MASTER TO MASTER_HOST='{hostname}', MASTER_PORT={port}, MASTER_USER='{repl_user}', MASTER_PASSWORD='{repl_pass}', MASTER_AUTO_POSITION = {gtid_auto_pos}, MASTER_SSL = 1".format(**data)
         return conn.execute(query) 
 

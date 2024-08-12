@@ -55,6 +55,7 @@ The whole installation script can be done manually in case you are not in Ubuntu
   systemctl start gonarch-api
   ```
 Now Gonarch HA is installed and ready to be used regardless the Linux distro.
+
 **NOTE**: Your OS could have some firewall in place that block multiple modules. Ensure you have whitelist these systemd processes.
 
 ## Need to talk?

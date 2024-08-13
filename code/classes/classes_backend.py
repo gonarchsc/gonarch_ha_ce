@@ -98,6 +98,13 @@ class BackEndSqlModel():
         result = self.backend_engine.execute(query).first()
         return None if result is None else result[0]  
 
+    def InstanceCheckExistingId(self, ip):
+        query = "SELECT count(*) \
+            FROM instance \
+            WHERE id = {0}".format(ip)
+        result = self.backend_engine.execute(query).first()
+        return None if result is None else result[0]  
+
     def InstanceGetIp(self, id):
         query = "SELECT hostname \
             FROM instance \

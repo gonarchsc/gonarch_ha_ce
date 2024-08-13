@@ -2,7 +2,7 @@
 *.db
 *.swp
 *dump.sql
-*__pycahce__*
+*__pycache__*
 *.pyc
 *.cfg
 build
@@ -15,4 +15,4 @@ bin/gui
 *.tar.gz
 *.tar
 compile_tmp
-code/classes/__pycache_
+code/classes/__pycache_*

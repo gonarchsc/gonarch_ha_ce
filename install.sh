@@ -55,40 +55,6 @@ if [ "$os_name" == "ubuntu" ]; then
             error_handler
         fi
     done 
-
-elif [ "$os_name" == "centos" ]; then
-    package_l=('epel-release' 'socat' 'sqlite-devel' 'haproxy' 'mariadb-libs-5.5.68-1.el7.x86_64')
-    for i in "${package_l[@]}"; do
-        echo -ne "- Install ${i}... "
-        yum install -y -q ${i} >/dev/null 2>&1
-        if [ "$?" -eq 0 ]; then
-            echo -ne "${txtgrn}OK\n${txtori}"
-        else
-            error_handler
-        fi
-    done 
-    echo -e "Create a firewall rule for API connection... "
-    # Allow bind address for HAproxy at Selinux level
-    setsebool -P haproxy_connect_any=1
-    # Copy the xml for firewall rule
-    cp resources/firewalld-service.xml /usr/lib/firewalld/services/gonarch-api.xml
-    if [ "$?" -ne 0 ]; then
-        error_handler
-    fi
-    # Restart firewalld
-    systemctl reload firewalld
-    if [ "$?" -ne 0 ]; then
-        error_handler
-    fi
-    # Add the new created rule
-    firewall-cmd --zone=public --permanent --add-service=gonarch-api
-    if [ "$?" -eq 0 ]; then
-        echo -ne "${txtgrn}OK\n${txtori}"
-    else
-        error_handler
-    fi
-
-else
     echo -e "This OS is not supported (${os_name}). You can contact us to check if this OS is in the Gonarch's route map"
 fi
 

@@ -19,6 +19,7 @@ elif __file__:
 with open(r'/etc/gonarch.conf') as file:
     config_file = yaml.load(file, Loader=yaml.FullLoader)
 
+gha_ip = config_file['workspace']['ip']
 dbname = config_file['workspace']['backend_dbname']
 env = config_file['workspace']['env']
 gonarch_cred = "{0}:{1}".format(config_file['mysql_credentials']['user'], config_file['mysql_credentials']['pass'])
@@ -133,8 +134,8 @@ def cluster_detail():
         "promotion_rule": result[0]['promotion_rule'],
         "in_maintenance": result[0]['maint_mode'],
         "max_replication_lag": result[0]['proxy_max_allowed_lag'],
-        "writer_endpoint": result[0]['writer_endpoint'],
-        "reader_endpoint": result[0]['reader_endpoint'],
+        "writer_endpoint": "{0}:{1}".format(gha_ip, result[0]['writer_port']),
+        "reader_endpoint": "{0}:{1}".format(gha_ip,result[0]['reader_port']),
         "instances": instance_l
     }    
     return jsonify(result_dict)

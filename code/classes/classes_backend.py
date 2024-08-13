@@ -127,8 +127,8 @@ class BackEndSqlModel():
 
     def InstanceGetInstanceListFromCluster(self, cluster):
         query = "SELECT i.*, c.name 'c_name', c.created_at 'c_created', c.huser, c.hpass, c.promotion_rule, c.maint_mode, c.proxy_max_allowed_lag, ist.*, ng.name 'ng_name', im.thread_connected, im.thread_running, \
-        (SELECT pl.name || ':' || pl.port FROM  proxy_listener pl  WHERE pl.ng_id = ng.id AND name like '%writer') 'writer_endpoint', \
-        (SELECT pl.name || ':' || pl.port FROM  proxy_listener pl  WHERE pl.ng_id = ng.id AND name like '%reader') 'reader_endpoint' \
+        (SELECT pl.port FROM  proxy_listener pl  WHERE pl.ng_id = ng.id AND name like '%writer') 'writer_port', \
+        (SELECT pl.port FROM  proxy_listener pl  WHERE pl.ng_id = ng.id AND name like '%reader') 'reader_port' \
             FROM instance i\
             INNER JOIN node_group ng \
                 ON i.node_group_id = ng.id \

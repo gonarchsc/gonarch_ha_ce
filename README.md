@@ -6,6 +6,9 @@ Documentation: https://github.com/raa82/gonarch_ha_ce/wiki
 
 Creator LinkedIn profile: https://www.linkedin.com/in/ralvarezaragon/ 
 
+## Support
+You can reach me either via LinkedIn (I'm pretty active there) or via email at ralvarez@gonarch.tech
+
 ## Features
 - Auto failover. Gonarch HA detects if the primary goes down or loses connectivity and initiates the promotion of a healthy replica based on the promotion rules that you define.
 - Promotion rules. It allows you to select replicas for promotion based on a given criteria, so you can prioritize data consistency or availability.
@@ -70,5 +73,4 @@ Now Gonarch HA is installed and ready to be used regardless of the Linux distro.
 
 **NOTE**: Your OS could have a firewall (UFW, SeLinux) in place that block multiple modules. Ensure you have whitelisted these systemd processes.
 
-## Need to talk?
-You can reach me either via LinkedIn (I'm pretty active there) or via email at ralvarez@gonarch.tech
+

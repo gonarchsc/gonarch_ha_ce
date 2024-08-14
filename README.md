@@ -6,6 +6,18 @@ Documentation: https://github.com/raa82/gonarch_ha_ce/wiki
 
 Creator LinkedIn profile: https://www.linkedin.com/in/ralvarezaragon/ 
 
+## Features
+- Auto failover. Gonarch HA detects if the primary goes down or lost connectivity and initiate the promotion of a healthy replica based on promotion rules that you define
+- Promotion rules. It allows you select replicas for promotion based on a given criteria so can prioritize data consistnecy or availability.
+- Traffic balance. Read traffic can be distriubted only to replicas or to the whole cluster.
+- Topology discovery. New nodes are automatically attached and managed by GHA.
+- Backup mode. Flag any replica as backup and it will stop serving traffic. You can set it back once backup is finished and keep the replica usefull for the rest of the day.
+- Integration. Every single communication with GHA happens through the API. This makes easy to control any aspect or fetch any information from your application.
+
+## Next steps
+- Chained replication management
+- Multi data center recognition
+  
 ## Install
 
 #### From binaries

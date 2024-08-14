@@ -23,24 +23,28 @@ You can reach me either via LinkedIn (I'm pretty active there) or via email at r
   
 ## Install
 
-#### From binaries
+#### Using installer 
 Just download the latest release tar file and run install.sh but keep in mind that the script only runs in Ubuntu for now.
 
-#### From source code
+#### Without installer
 The whole installation script can be done manually in case you are not in Ubuntu. As ROOT:
-* Clone this repo
+* Clone this repo 
 * Install sqlite3, haproxy and socat in your OS (packages names may vary)
-* Create the folder in /opt/gonarch and /run/haproxy
+* Create the folder in /opt/gonarch, /run/haproxy and /var/log/gonarch
 * Move gonarch.conf to /etc/
+  ```bash
+  mv resources/gonarch.conf.template /etc/gonarch.conf
+  ```
 * Edit /etc/gonarch.confg and change this
   ```bash
   workspace:
   name: Choose a workspace name (this has no real impact so far just pick up anything you want)
   ip: This host IP
+  env: Production
   ```
-* Move files to /opt/gonarch:
-  - bin/*
-  - resources/haproxy_template.j2
+* Move resources/haproxy_template.j2 and check_status.sh to /opt/gonarch
+* Download the latest release package and uncompress it
+* Move the bin/* content to /opt/gonarch 
 * Create the sqlite backend DB
   ```bash
   sqlite3 /opt/gonarch/backend.db < resources/backend_table_def.sql

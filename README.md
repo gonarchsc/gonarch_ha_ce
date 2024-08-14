@@ -28,6 +28,7 @@ Just download the latest release tar file and run install.sh but keep in mind th
 
 #### From source code
 The whole installation script can be done manually in case you are not in Ubuntu. As ROOT:
+* Clone this repo
 * Install sqlite3, haproxy and socat in your OS (packages names may vary)
 * Create the folder in /opt/gonarch and /run/haproxy
 * Move gonarch.conf to /etc/

@@ -55,6 +55,26 @@ if [ "$os_name" == "ubuntu" ]; then
             error_handler
         fi
     done 
+    
+elif [ "$os_name" == "almalinux" ]; then
+    echo -ne "- Running yum update... "
+    yum update >/dev/null 2>&1
+    if [ "$?" -eq 0 ]; then
+        echo -ne "${txtgrn}OK\n${txtori}"
+    else
+        error_handler
+    fi
+    package_l=('sqlite' 'haproxy' 'socat')
+    for i in "${package_l[@]}"; do
+        echo -ne "- Install ${i}... "
+        yum install --no-install-recommends -y -qqq ${i} >/dev/null 2>&1
+        if [ "$?" -eq 0 ]; then
+            echo -ne "${txtgrn}OK\n${txtori}"
+        else
+            error_handler
+        fi
+    done 
+else
     echo -e "This OS is not supported (${os_name}). You can contact us to check if this OS is in the Gonarch's route map"
 fi
 

@@ -1,5 +1,14 @@
 #!/usr/bin/bash
 
+# pip dependencies
+# mysqlclient==2.2.4
+# SQLAlchemy==1.4.4
+# Flask==3.0.3
+# Jinja2==3.1.4
+# flask-cors
+# waitress
+# pyyaml
+
 txtblk='\e[0;30m' # Black - Regular
 txtred='\e[0;31m' # Red
 txtgrn='\e[0;32m' # Green

@@ -21,7 +21,6 @@ backend_db = BackEndSqlModel(dbname)
 parser = argparse.ArgumentParser()
 parser.add_argument("-s", "--status", help="Shows the summary of all clusters status", action='store_true')
 parser.add_argument("-c", "--cluster", help = "Shows a given cluster details", type=str, dest="cluster_name")
-parser.add_argument("-r", "--replica", help = "Shows a given replicas details", type=int, dest="instance_id")
 
 args = parser.parse_args()
 if args.status:
@@ -72,8 +71,3 @@ if args.cluster_name:
 
     print(tabulate(node_info_tbody, headers=node_info_thead, tablefmt="rounded_grid"))
 
-if args.instance_id:
-   instance_result = backend_db.InstanceCheckExistingId(args.instance_id) 
-   if instance_result == 0:  
-        print("Instance ID doesnt exists")
-        exit()

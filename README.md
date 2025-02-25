@@ -75,6 +75,19 @@ The whole installation script can be done manually in case you are not in Ubuntu
   ```
 Now Gonarch HA is installed and ready to be used regardless of the Linux distro.
 
+#### Python dependencies
+Just in case you want to use the py files instead the binaries ensure the following dependencies are installed:
+```bash
+sqlalchemy==1.4.44
+flask
+flask_cors
+waitress
+requests
+pyyaml
+tabulate
+mysqlclient (This library usually requires some extra packages from your OS but it depends on the flavour)
+```
+
 **NOTE**: Your OS could have a firewall (UFW, SeLinux) in place that block multiple modules. Ensure you have whitelisted these systemd processes.
 
 
